@@ -22,3 +22,29 @@ impl<T> Default for TailQ<T>{
         Self::new()
     }
 }
+#[derive(Clone)]
+pub struct Iter<'a,T:'a>{
+    head:Option<NonNull<Node<T>>>,
+    tail:Option<NonNull<Node<T>>>,
+    len:usize,
+    marker:PhantomData<&'a Node<T>>,
+}
+pub struct IterMut<'a,T:'a>{
+    head:Option<NonNull<Node<T>>>,
+    tail:Option<NonNull<Node<T>>>,
+    len:usize,
+    marker:PhantomData<&'a Node<T>>,
+}
+impl<T> Node<T>{
+    fn new(element:T)->Self{
+        Node{
+            next:None,
+            prev:None,
+            element,
+        }
+    }
+    #[allow(clippy::boxed_local)]
+    fn into_element(self:Box<Self>)->T{
+        self.element
+    }
+}
