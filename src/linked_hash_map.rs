@@ -35,5 +35,8 @@ impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
         &mut self.map.buckets[self.bucket].last_mut().unwrap().1
     }
 }
-
+pub enum Entry<'a, K: 'a, V: 'a> {
+    Occupied(OccupiedEntry<'a, K, V>),
+    Vacant(VacantEntry<'a, K, V>),
+}
 //TODO
