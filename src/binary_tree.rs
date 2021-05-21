@@ -1,4 +1,4 @@
-'''
+///
 fn main() {}
 use std::collections::VecDeque;
 
@@ -102,7 +102,7 @@ impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
         }
     }
 }
-'''
+///
 #![allow(dead_code)]
 enum BinaryTree<T>{
     Empty,
