@@ -32,3 +32,9 @@ impl<T> Mul for Complex<T>
                   im: self.re * rhs.im + self.im * rhs.re }
     }
 }
+impl Add<Complex<f64>> for f64 {
+    type Output = Complex<f64>;
+    fn add(self, rhs: Complex<f64>) -> Complex<f64> {
+        Complex { re: rhs.re + self, im: rhs.im }
+    }
+}
