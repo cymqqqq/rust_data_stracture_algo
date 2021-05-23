@@ -103,5 +103,42 @@ mod gap{
                 self.gap = pos .. pos + gap.len();
             }
         }
-        
+        /// Insert `elt` at the current insertion position,
+        /// and leave the insertion position after it.
+        pub fn insert(&mut self, elt: T) {
+            if self.gap.len() == 0 {
+                self.enlarge_gap();
+            }
+
+            unsafe {
+                let index = self.gap.start;
+                std::ptr::write(self.space_mut(index), elt);
+            }
+            self.gap.start += 1;
+        }
+
+        /// Insert the elements produced by `iter` at the current insertion
+        /// position, and leave the insertion position after them.
+        pub fn insert_iter<I>(&mut self, iterable: I)
+            where I: IntoIterator<Item=T>
+        {
+            for item in iterable {
+                self.insert(item)
+            }
+        }
+
+        /// Remove the element just after the insertion position
+        /// and return it, or return `None` if the insertion position
+        /// is at the end of the GapBuffer.
+        pub fn remove(&mut self) -> Option<T> {
+            if self.gap.end == self.capacity() {
+                return None;
+            }
+
+            let element = unsafe {
+                std::ptr::read(self.space(self.gap.end))
+            };
+            self.gap.end += 1;
+            Some(element)
+        }
 }
