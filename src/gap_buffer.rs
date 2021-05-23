@@ -141,4 +141,157 @@ mod gap{
             self.gap.end += 1;
             Some(element)
         }
+        /// Double the capacity of `self.storage`.
+        fn enlarge_gap(&mut self) {
+            let mut new_capacity = self.capacity() * 2;
+            if new_capacity == 0 {
+                // The existing vector is empty.
+                // Choose a reasonable starting capacity.
+                new_capacity = 4;
+            }
+
+            // We have no idea what resizing a Vec does with its "unused"
+            // capacity. So just create a new vector and move over the elements.
+            let mut new = Vec::with_capacity(new_capacity);
+            let after_gap = self.capacity() - self.gap.end;
+            let new_gap = self.gap.start .. new.capacity() - after_gap;
+
+            unsafe {
+                // Move the elements that fall before the gap.
+                std::ptr::copy_nonoverlapping(self.space(0),
+                                              new.as_mut_ptr(),
+                                              self.gap.start);
+
+                // Move the elements that fall after the gap.
+                let new_gap_end = new.as_mut_ptr().offset(new_gap.end as isize);
+                std::ptr::copy_nonoverlapping(self.space(self.gap.end),
+                                              new_gap_end,
+                                              after_gap);
+            }
+
+            // This frees the old Vec, but drops no elements,
+            // because the Vec's length is zero.
+            self.storage = new;
+            self.gap = new_gap;
+        }
+    }
+    impl<T> Drop for GapBuffer<T> {
+        fn drop(&mut self) {
+            unsafe {
+                for i in 0 .. self.gap.start {
+                    std::ptr::drop_in_place(self.space_mut(i));
+                }
+                for i in self.gap.end .. self.capacity() {
+                    drop(std::ptr::read(self.space(i)));
+                }
+            }
+        }
+    }
+    pub struct Iter<'a,T:'a>{
+      buffer:&'a GapBuffer<T>,
+      pos:usize,
+  }
+  impl<'a, T: 'a> Iterator for Iter<'a, T> {
+        type Item = &'a T;
+        fn next(&mut self) -> Option<&'a T> {
+            if self.pos >= self.buffer.len() {
+                None
+            } else {
+                self.pos += 1;
+                self.buffer.get(self.pos - 1)
+            }
+        }
+    }
+
+    impl<'a, T: 'a> IntoIterator for &'a GapBuffer<T> {
+        type Item = &'a T;
+        type IntoIter = Iter<'a, T>;
+        fn into_iter(self) -> Iter<'a, T> {
+            Iter { buffer: self, pos: 0 }
+        }
+    }
+
+    impl GapBuffer<char> {
+        pub fn get_string(&self) -> String {
+            let mut text = String::new();
+            text.extend(self);
+            text
+        }
+    }
+
+    use std::fmt;
+    impl<T: fmt::Debug> fmt::Debug for GapBuffer<T> {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            let indices = (0..self.gap.start).chain(self.gap.end .. self.capacity());
+            let elements = indices.map(|i| unsafe { &*self.space(i) });
+            f.debug_list().entries(elements).finish()
+        }
+    }
+}
+mod gap_tests {
+    #[test]
+    fn test() {
+        use gap::GapBuffer;
+
+        let mut buf = GapBuffer::new();
+        buf.insert_iter("Lord of the Rings".chars());
+        buf.set_position(12);
+
+        buf.insert_iter("Onion ".chars());
+
+        assert_eq!(buf.get_string(), "Lord of the Onion Rings");
+    }
+
+    #[test]
+    fn misc() {
+        use gap::GapBuffer;
+
+        let mut gb = GapBuffer::new();
+        println!("{:?}", gb);
+        gb.insert("foo".to_string());
+        println!("{:?}", gb);
+        gb.insert("bar".to_string());
+        println!("{:?}", gb);
+        gb.insert("baz".to_string());
+        println!("{:?}", gb);
+        gb.insert("qux".to_string());
+        println!("{:?}", gb);
+        gb.insert("quux".to_string());
+        println!("{:?}", gb);
+
+        gb.set_position(2);
+
+        assert_eq!(gb.remove(), Some("baz".to_string()));
+        println!("{:?}", gb);
+        assert_eq!(gb.remove(), Some("qux".to_string()));
+        println!("{:?}", gb);
+        assert_eq!(gb.remove(), Some("quux".to_string()));
+        println!("{:?}", gb);
+        assert_eq!(gb.remove(), None);
+        println!("{:?}", gb);
+
+        gb.insert("quuux".to_string());
+        println!("{:?}", gb);
+
+        gb.set_position(0);
+        assert_eq!(gb.remove(), Some("foo".to_string()));
+        println!("{:?}", gb);
+        assert_eq!(gb.remove(), Some("bar".to_string()));
+        println!("{:?}", gb);
+        assert_eq!(gb.remove(), Some("quuux".to_string()));
+        println!("{:?}", gb);
+        assert_eq!(gb.remove(), None);
+        println!("{:?}", gb);
+    }
+
+    #[test]
+    fn drop_elements() {
+        use gap::GapBuffer;
+
+        let mut gb = GapBuffer::new();
+        gb.insert("foo".to_string());
+        gb.insert("bar".to_string());
+
+        gb.set_position(1);
+    }
 }
