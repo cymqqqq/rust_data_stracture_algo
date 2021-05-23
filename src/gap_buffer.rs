@@ -51,5 +51,15 @@ mod gap{
         unsafe fn space_mut(&mut self, index: usize) -> *mut T {
             self.storage.as_mut_ptr().offset(index as isize)
         }
+    /// Return the offset in the buffer of the `index`'th element, taking
+        /// the gap into account. This does not check whether index is in range,
+        /// but it never returns the index of space in the gap.
+        fn index_to_raw(&self, index: usize) -> usize {
+            if index < self.gap.start {
+                index
+            } else {
+                index + self.gap.len()
+            }
+        }
     
 }
