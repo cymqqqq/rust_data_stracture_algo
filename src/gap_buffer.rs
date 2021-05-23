@@ -61,5 +61,47 @@ mod gap{
                 index + self.gap.len()
             }
         }
-    
+      /// Return a reference to the `index`'th element,
+        /// or `None` if `index` is out of bounds.
+        pub fn get(&self, index: usize) -> Option<&T> {
+            let raw = self.index_to_raw(index);
+            if raw < self.capacity() {
+                unsafe {
+                    // We just checked `raw` against self.capacity(),
+                    // and index_to_raw skips the gap, so this is safe.
+                    Some(&*self.space(raw))
+                }
+            } else {
+                None
+            }
+        }
+        /// Set the current insertion position to `pos`.
+        /// If `pos` is out of bounds, panic.
+        pub fn set_position(&mut self, pos: usize) {
+            if pos > self.len() {
+                panic!("index {} out of range for GapBuffer", pos);
+            }
+
+            unsafe {
+                let gap = self.gap.clone();
+                if pos > gap.start {
+                    // `pos` falls after the gap. Move the gap right
+                    // by shifting elements after the gap to before it.
+                    let distance = pos - gap.start;
+                    std::ptr::copy(self.space(gap.end),
+                                   self.space_mut(gap.start),
+                                   distance);
+                } else if pos < gap.start {
+                    // `pos` falls before the gap. Move the gap left
+                    // by shifting elements before the gap to after it.
+                    let distance = gap.start - pos;
+                    std::ptr::copy(self.space(pos),
+                                   self.space_mut(gap.end - distance),
+                                   distance);
+                }
+
+                self.gap = pos .. pos + gap.len();
+            }
+        }
+        
 }
