@@ -27,16 +27,7 @@ macro_rules! linked{
     ($($e:expr),*)=>{to_list(vec![$($e.to_owned()),*])};
     ($($e:expr),*)=>{to_list(vec![$($e.to_owned()),*])};
 }
-pub fn has_cycle(head:Option<Box<ListNode>>)->bool{
-    let mut fast_p=&head;
-    let mut slow_p=&head;
-    while fast_p.is_some() && fast_p.as_ref().unwrap().next.is_some(){
-        slow_p=&slow_p.as_ref().unwrap().next;
-        fast_p=&fast_p.as_ref().unwrap().next.as_ref().unwrap().next;
-        if slow_p==fast_p {return true;}
-    }
-    false
-}
+
 pub fn merge_two_list(l1:Option<Box<ListNode>>,l2:Option<Box<ListNode>>)->Option<Box<ListNode>>{
     match(l1,l2){
         (Some(node1),None)=>Some(node1),
