@@ -52,39 +52,17 @@ macro_rules! tree{
     };
     ($($e:expr,)*)=>{(tree![$($e),*])};
 }
-pub fn preorder_traversal(root:Option<Rc<RefCell<TreeNode>>>)->Vec<i32>{
-    let mut result:Vec<i32>=vec![];
-    if root.is_none() { return result; }
-    _preorder(root,&mut result);
-    result
+pub fn insert_into_bst(root:Option<Rc<RefCell<TreeNode>>>,val:i32)->Option<Rc<RefCell<TreeNode>>>{
+    insert(&root,val);
+    root
 }
-fn _preorder(root:Option<Rc<RefCell<TreeNode>>>,result:&mut Vec<i32>){
-    match root{
-        Some(node) => {
-            result.push(node.borrow().val);
-            _preorder(node.borrow().left.clone(),result);
-            _preorder(node.borrow().right.clone(),result);
-            
-        },
-        None => {return;}
-    }
-}
-// iterating using stack
-pub fn inorder_traversal_stack(root:Option<Rc<RefCell<TreeNode>>>)->Vec<i32> {
-    let mut result=vec![];
-    if root.is_none() { return result; }
-    let mut stack: Vec<Rc<RefCell<TreeNode>>> = Vec::new();
-    let mut r = root.clone();
-    while r.is_some() || !stack.is_empty() {
-        while let Some(node) = r {
-            result.push(node.borrow().val);
-            stack.push(node.clone());
-            r = node.borrow().left.clone();
+fn insert(node:&Option<Rc<RefCell<TreeNode>>>,val:i32){
+    if let Some(n) = node {
+        let mut n = n.borrow_mut();
+        let target = if val > n.val { &mut n.right } else { &mut n.left };
+        if target.is_some() {
+            return insert(target,val);
         }
-        r = stack.pop();
-        if let Some(node) = r {
-            r = node.borrow().right.clone();
-        }
+        *target=Some(Rc::new(RefCell::new(TreeNode::new(val))));
     }
-    result
 }
