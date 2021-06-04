@@ -190,4 +190,21 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     }
     
 }
+impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
+    type Item = (&'a K, &'a V);
+    type IntoIter = Iter<'a, K, V>;
+    fn into_iter(self) -> Self::IntoIter {
+        Iter {
+            map: self,
+            bucket: 0,
+            at: 0,
+        }
+    }
+}
+
+pub struct IntoIter<K, V> {
+    map: HashMap<K, V>,
+    bucket: usize,
+}
+
 //TODO
