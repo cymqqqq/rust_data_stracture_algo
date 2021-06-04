@@ -161,4 +161,33 @@ where
         mem::replace(&mut self.buckets, new_buckets);
     }
 }
+pub struct Iter<'a, K: 'a, V: 'a> {
+    map: &'a HashMap<K,V>,
+    bucket: usize,
+    at: usize,
+}
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
+    type Item = (&'a K, &'a V);
+    fn next(&mut self) -> Option<Self::Item>{
+        loop {
+            match self.map.buckets.get(self.bucket) {
+                Some(bucket) => {
+                    match bucket.get(self.at) {
+                        Some(&(ref k, ref v)) => {
+                            self.at += 1;
+                            break Some((k, v));
+                        }
+                        None => {
+                            self.bucket += 1;
+                            self.at = 0;
+                            continue;
+                        }
+                    }
+                }
+                None => break None,
+            }
+        }
+    }
+    
+}
 //TODO
