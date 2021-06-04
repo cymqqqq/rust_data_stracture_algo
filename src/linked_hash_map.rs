@@ -233,4 +233,78 @@ impl<K, V> IntoIterator for HashMap<K, V> {
         }
     }
 }
-//TODO
+use std::iter::FromIterator;
+impl<K, V> FromIterator<(K, V)> for HashMap<K, V>
+where
+    K: Hash + Eq,
+{
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+    {
+        let mut map = HashMap::new();
+        for (k, v) in iter {
+            map.insert(k, v);
+        }
+        map
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn insert() {
+        let mut map = HashMap::new();
+        assert_eq!(map.len(), 0);
+        assert!(map.is_empty());
+        map.insert("foo", 42);
+        assert_eq!(map.len(), 1);
+        assert!(!map.is_empty());
+        assert_eq!(map.get(&"foo"), Some(&42));
+        assert_eq!(map.remove(&"foo"), Some(42));
+        assert_eq!(map.len(), 0);
+        assert!(map.is_empty());
+        assert_eq!(map.get(&"foo"), None);
+    }
+
+    #[test]
+    fn iter() {
+        let mut map = HashMap::new();
+        map.insert("foo", 42);
+        map.insert("bar", 43);
+        map.insert("baz", 142);
+        map.insert("quox", 7);
+        for (&k, &v) in &map {
+            match k {
+                "foo" => assert_eq!(v, 42),
+                "bar" => assert_eq!(v, 43),
+                "baz" => assert_eq!(v, 142),
+                "quox" => assert_eq!(v, 7),
+                _ => unreachable!(),
+            }
+        }
+        assert_eq!((&map).into_iter().count(), 4);
+
+        let mut items = 0;
+        for (k, v) in map {
+            match k {
+                "foo" => assert_eq!(v, 42),
+                "bar" => assert_eq!(v, 43),
+                "baz" => assert_eq!(v, 142),
+                "quox" => assert_eq!(v, 7),
+                _ => unreachable!(),
+            }
+            items += 1;
+        }
+        assert_eq!(items, 4);
+    }
+
+    #[test]
+    fn empty_hashmap() {
+        let mut map = HashMap::<&str, &str>::new();
+        assert_eq!(map.contains_key("key"), false);
+        assert_eq!(map.get("key"), None);
+        assert_eq!(map.remove("key"), None);
+    }
+}
