@@ -105,6 +105,27 @@ impl Graph {
         dist
     }
 }
+pub struct DfsIterator<'a> {
+    visited: Vec<bool>,
+    stack: Vec<usize>,
+    adj_iters: Vec<AdjListIterator<'a>>,
+}
+impl<'a> Iterator for DfsIterator<'a> {
+    type Item = (usize, usize);
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let &u = self.stack.last()?;
+            while let Some((e, v)) = self.adj_iters[u].next() {
+                if !self.visited[u] {
+                    self.visited[v] = true;
+                    self.stack.push(v);
+                    return Some((e, v))
+                }
+            }
+            self.stack.pop();
+        }
+    }
+}
 pub struct AdjListIterator<'a> {
     graph:&'a Graph,
     next_edge: Option<usize>,
