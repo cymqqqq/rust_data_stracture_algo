@@ -104,6 +104,18 @@ impl Graph {
         }
         dist
     }
+    pub fn dfs(&self, root: usize) -> DfsIterator {
+        let mut visited = vec![false; self.num_v()];
+        visited[root] = true;
+        let adj_iters = (0..self.num_v())
+        .map(|u| self.adj_list(u))
+        .collect::<Vec<_>>();
+        DfsIterator {
+            visited,
+            stack: vec![root],
+            adj_iters,
+        }
+    }
 }
 pub struct DfsIterator<'a> {
     visited: Vec<bool>,
