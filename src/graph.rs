@@ -86,7 +86,24 @@ impl Graph {
         .filter(|&e| components.merge(self.end[2 * e], self.end[2 * e + 1]))
         .collect()
     }
-    
+    pub fn dijkstra(&self, weights: &[u64], u: usize) -> Vec<u64> {
+        let mut dist = vec![u64::max_value(); weights.len()];
+        let mut heap = std::collections::BinaryHeap::new();
+        dist[u] = 0;
+        heap.push((Reverse(0), 0));
+        while let Some((Reverse(dist_u), u)) = heap.pop() {
+            if dist[u] == dist_u {
+                for (e, v) in self.adj_list(u) {
+                    let dist_v = dist_u + weights[e];
+                    if dist[v] > dist_v {
+                        dist[v] = dist_v;
+                        heap.push((Reverse(dist_v), v));
+                    }
+                }
+            }
+        }
+        dist
+    }
 }
 pub struct AdjListIterator<'a> {
     graph:&'a Graph,
