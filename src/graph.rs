@@ -232,4 +232,80 @@ impl Flow {
         }
         df
     }
+    //after running maximum flow, use this to recover the dual minimum cut
+    pub fn min_cut(&self, dist: &[i64]) -> Vec<usize> {
+        (0..self.graph.num_e())
+            .filter(|&e| {
+                let u = self.graph.end[e ^ 1];
+                let v = self.graph.end[e];
+                dist[u] < Self::INF && dist[v] == Self::INF
+            })
+            .collect()
+    }
+    //find the minimum cost flow 
+    pub fn mcf(&self, s: usize, t: usize) -> (i64, i64, Vec<i64>) {
+        let mut pot = vec![0; self.graph.num_v()];
+        //bellman-ford deals with negative-cost edges 
+        for _ in 1..self.graph.num_v() {
+            for e in 0..self.graph.num_e() {
+                if self.cap[e] > 0 {
+                let u = self.graph.end[e ^ 1];
+                let v = self.graph.end[e];
+                pot[v] = pot[v].min(pot[u] + self.cost[e]);
+            }
+            }
+            
+        }
+        let mut flow = vec![0; self.graph.num_e()];
+        let (mut min_cost, mut max_flow) = (0, 0);
+        loop {
+            let par = self.mcf_search(s, &flow, &mut pot);
+            if par[t] == None {
+                break;
+            }
+            let (dc, df) = self.mcf_augment(t, &par, &mut flow);
+            min_cost += dc;
+            max_flow = df;
+        }
+        (min_cost, max_flow, flow)
+    }
+    //maintains johnson's potential to prevent negative-cost residual edges
+    //this allows running dijkstra instead of the slower bellman-ford
+    fn mcf_search(&self, s: usize, flow: &[i64], pot: &mut [i64]) -> Vec<Option<usize>> {
+        let mut vis = vec![false; self.graph.num_v()];
+        let mut dist = vec![Self::INF; self.graph.num_v()];
+        let mut par = vec![None; self.graph.num_v()];
+        dist[s] = 0;
+        while let Some(u) = (0..self.graph.num_v())
+            .filter(|&u| !vis[u] && dist[u] < Self::INF)
+            .min_by_key(|&u| dist[u] - pot[u]) 
+        {
+            vis[u] = true;
+            pot[u] = dist[u];
+            for (e, v) in self.graph.adj_list(u) {
+                if dist[v] > dist[u] + self.cost[e] && flow[e] < self.cap[e] {
+                    dist[v] = dist[u] + self.cost[e];
+                    par[v] = Some(e);
+                }
+            }
+        }
+        par
+    }
+    //pushes flow along an augmenting path of minimum cost
+    fn mcf_augment(&self, t: usize, par: &[Option<usize>], flow: &mut [i64]) -> (i64, i64) {
+        let (mut dc, mut df) = (0, Self::INF);
+        let mut u = t;
+        while let Some(e) = par[u] {
+            df = df.min(self.cap[e] - flow[e]);
+            u = self.graph.end[e ^ 1];
+        }
+        u = t;
+        while let Some(e) = par[u] {
+            flow[e] += df;
+            flow[e ^ 1] -= df;
+            dc += df * self.cost[e];
+            u = self.graph.end[e ^ 1];
+        }
+        (dc, df)
+    }
 }
