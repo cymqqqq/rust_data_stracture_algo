@@ -152,3 +152,84 @@ impl<'a> Iterator for AdjListIterator<'a> {
         })
     }
 }
+pub struct Flow {
+    pub graph: Graph,
+    pub cap: Vec<i64>,
+    pub cost: Vec<i64>,
+}
+impl Flow {
+    const INF: i64 = 0x3f3f_3f3f_3f3f_3f3f;
+    pub fn new(vmax: usize, emax_hint: usize) -> Self {
+        Self {
+            graph: Graph::new(vmax, 2 * emax_hint),
+            cap: Vec::with_capacity(2 * emax_hint),
+            cost: Vec::with_capacity(2 * emax_hint),
+        }
+    }
+    pub fn add_edge(&mut self, u: usize, v: usize, cap: i64, rcap: i64, cost: i64) {
+        self.cap.push(cap);
+        self.cap.push(rcap);
+        self.cost.push(cost);
+        self.cost.push(-cost);
+        self.graph.add_undirected_edge(u, v);
+    }
+    //Dinic algorithm to find the maximum flow from s to t where s != t
+    pub fn dinic(&self, s: usize, t: usize) -> (i64, Vec<i64>) {
+        let mut flow = vec![0; self.graph.num_e()];
+        let mut max_flow = 0;
+        loop {
+            let dist = self.dinic_search(s, &flow);
+            if dist[t] == Self::INF { break; }
+            //keep track of adjacency lists to avoid revisiting blocked edges
+            let mut adj_iters = (0..self.graph.num_v())
+            .map(|u| self.graph.adj_list(u).peekable())
+            .collect::<Vec<_>>();
+            max_flow += self.dinic_augment(s, t, Self::INF, &dist, &mut adj_iters, &mut flow);
+            
+        }
+        (max_flow, flow)
+    }
+    //compute BFS distances to restrict attention to shortest path edges
+    fn dinic_search(&self, s: usize, flow: &[i64]) -> Vec<i64> {
+        let mut dist = vec![Self::INF; self.graph.num_v()];
+        let mut q = ::std::collections::VecDeque::new();
+        dist[s] = 0;
+        q.push_back(s);
+        while let Some(u) = q.pop_front() {
+            for (e, v) in self.graph.adj_list(u) {
+                if dist[v] == Self::INF && flow[e] < self.cap[e] {
+                    dist[v] = dist[u] + 1;
+                    q.push_back(v);
+                }
+            }
+        }
+        dist
+    }
+    //pushes a blocking flow that increase the residual's s-t distance
+    fn dinic_augment(
+        &self,
+        u: usize,
+        t: usize,
+        f: i64,
+        dist: &[i64],
+        adj: &mut [::std::iter::Peekable<AdjListIterator>],
+        flow: &mut [i64],
+    ) -> i64 {
+        if u == t { return f; }
+        let mut df = 0;
+        while let Some(&(e, v)) = adj[u].peek() {
+            let rem_cap = (self.cap[e] - flow[e]).min(f - df);
+            if rem_cap > 0 && dist[v] == dist[u] + 1 {
+                let cf = self.dinic_augment(v, t, rem_cap, dist, adj, flow);
+                flow[e] += cf;
+                flow[e ^ 1] -= cf;
+                df += cf;
+                if df == f { break; }
+                
+            }
+            //the next edge is either blocked
+            adj[u].next();
+        }
+        df
+    }
+}
