@@ -309,3 +309,33 @@ impl Flow {
         (dc, df)
     }
 }
+//connectivity graph constructor
+pub struct Connectivitydata {
+    time: usize,
+    vis: Box<[usize]>,
+    low: Box<[usize]>,
+    v_stack: Vec<usize>,
+    e_stack: Vec<usize>,
+}
+impl Connectivitydata {
+    fn new(num_v: usize) -> Self {
+        Self {
+            time: 0,
+            vis: vec![0; num_v].into_boxed_slice(),
+            low: vec![0; num_v].into_boxed_slice(),
+            v_stack: vec![],
+            e_stack: vec![],
+        }
+    }
+    fn visit(&mut self, u: usize) {
+        self.time += 1;
+        self.vis[u] = self.time;
+        self.low[u] = self.time;
+        self.v_stack.push(u);
+    }
+    fn lower(&mut self, u: usize, val: usize) {
+        if self.low[u] > val {
+            self.low[u] = val
+        }
+    }
+}
